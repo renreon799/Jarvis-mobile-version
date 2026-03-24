@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#020a12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23020a12'/><circle cx='96' cy='96' r='60' fill='none' stroke='%2300d4ff' stroke-width='3'/><text x='96' y='108' font-family='monospace' font-size='40' fill='%2300d4ff' text-anchor='middle'>⚡</text></svg>">
+<title>J.A.R.V.I.S — Personal AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #00d4ff;
+  --blue2: #0055cc;
+  --blue3: #003a8c;
+  --cyan: #00ffee;
+  --gold: #ffd700;
+  --amber: #ff9900;
+  --red: #ff3c3c;
+  --green: #00ff88;
+  --bg: #020a12;
+  --bg2: #040f1a;
+  --panel: rgba(0,180,255,0.04);
+  --panel2: rgba(0,180,255,0.08);
+  --border: rgba(0,212,255,0.2);
+  --border2: rgba(0,212,255,0.4);
+  --glow: 0 0 20px rgba(0,212,255,0.4);
+  --glow2: 0 0 40px rgba(0,212,255,0.6);
+  --text: #c8f0ff;
+  --text2: rgba(200,240,255,0.6);
+  --text3: rgba(200,240,255,0.3);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ════ BACKGROUND ════ */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.scan-line {
+  position: fixed;
+  left:0; width:100%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent);
+  animation: scanAnim 6s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.corner { position:fixed; width:24px; height:24px; border-color:rgba(0,212,255,0.4); border-style:solid; z-index:10; pointer-events:none; }
+.corner.tl{top:6px;left:6px;border-width:2px 0 0 2px;}
+.corner.tr{top:6px;right:6px;border-width:2px 2px 0 0;}
+.corner.bl{bottom:6px;left:6px;border-width:0 0 2px 2px;}
+.corner.br{bottom:6px;right:6px;border-width:0 2px 2px 0;}
+
+/* ════ APP SHELL ════ */
+#app {
+  position: relative;
+  z-index: 2;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ════ HEADER ════ */
+#header {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2,10,18,0.9);
+  backdrop-filter: blur(20px);
+  flex-shrink: 0;
+}
+
+.hdr-left { display:flex; flex-direction:column; }
+.hdr-logo { font-family:'Orbitron',sans-serif; font-weight:900; font-size:1.1rem; color:var(--blue); text-shadow:var(--glow); letter-spacing:4px; }
+.hdr-sub { font-size:0.48rem; color:var(--text3); letter-spacing:3px; margin-top:1px; }
+
+.hdr-right { display:flex; align-items:center; gap:10px; }
+.live-dot { width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite; }
+#hdr-time { font-family:'Orbitron',sans-serif; font-size:0.75rem; color:var(--blue); }
+
+/* ════ NAV TABS ════ */
+#navTabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2,10,18,0.8);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#navTabs::-webkit-scrollbar { display:none; }
+
+.tab {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.tab .tab-icon { font-size: 1rem; }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); text-shadow: var(--glow); }
+.tab:hover { color: var(--text); }
+
+/* ════ MAIN CONTENT ════ */
+#content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.screen {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px;
+  gap: 10px;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,212,255,0.2) transparent;
+}
+.screen.active { display: flex; }
+
+/* ════ BOTTOM BAR ════ */
+#bottomBar {
+  border-top: 1px solid var(--border);
+  background: rgba(2,10,18,0.95);
+  backdrop-filter: blur(20px);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#mainInput {
+  flex: 1;
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#mainInput:focus { border-color: var(--blue); box-shadow: var(--glow); }
+#mainInput::placeholder { color: var(--text3); }
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--blue);
+  cursor: pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background:rgba(0,212,255,0.12); border-color:var(--blue); box-shadow:var(--glow); }
+.icon-btn.danger:hover { background:rgba(255,60,60,0.15); border-color:var(--red); color:var(--red); }
+.icon-btn.active { background:rgba(255,60,60,0.2); border-color:var(--red); color:var(--red); animation:pulse 1s infinite; }
+
+#statusLine {
+  font-size: 0.5rem;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* ════ SHARED COMPONENTS ════ */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.card-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  color: var(--blue);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+
+.stat-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  text-align: center;
+}
+.stat-tile .st-icon { font-size:1.2rem; }
+.stat-tile .st-val { font-family:'Orbitron',sans-serif; font-size:0.75rem; color:var(--blue); font-weight:600; }
+.stat-tile .st-label { font-size:0.48rem; color:var(--text3); letter-spacing:2px; text-transform:uppercase; }
+
+.prog-bar { height:3px; background:rgba(0,212,255,0.1); border-radius:2px; margin-top:4px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--blue2),var(--blue)); transition:width 1s ease; }
+.prog-fill.green { background:linear-gradient(90deg,#00aa55,var(--green)); }
+.prog-fill.amber { background:linear-gradient(90deg,#cc6600,var(--amber)); }
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--blue);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.btn:hover { background:rgba(0,212,255,0.12); border-color:var(--blue); box-shadow:var(--glow); }
+.btn.primary { background:rgba(0,212,255,0.15); border-color:var(--blue); }
+.btn.danger { border-color:var(--red); color:var(--red); }
+.btn.success { border-color:var(--green); color:var(--green); }
+
+.input-field {
+  width: 100%;
+  background: rgba(0,212,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 6px;
+}
+.input-field:focus { border-color: var(--blue); }
+.input-field::placeholder { color: var(--text3); }
+
+textarea.input-field { resize: vertical; min-height: 80px; }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.tag.blue { background:rgba(0,212,255,0.15); color:var(--blue); border:1px solid rgba(0,212,255,0.3); }
+.tag.green { background:rgba(0,255,136,0.1); color:var(--green); border:1px solid rgba(0,255,136,0.3); }
+.tag.amber { background:rgba(255,153,0,0.1); color:var(--amber); border:1px solid rgba(255,153,0,0.3); }
+.tag.red { background:rgba(255,60,60,0.1); color:var(--red); border:1px solid rgba(255,60,60,0.3); }
+
+/* ════ CHAT SCREEN ════ */
+#chatMessages {
+  flex:1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,212,255,0.2) transparent;
+}
+
+.msg { display:flex; gap:8px; align-items:flex-start; animation:msgIn 0.3s ease; }
+.msg.user { flex-direction:row-reverse; }
+.msg-av { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0; }
+.msg.jarvis .msg-av { background:rgba(0,180,255,0.15);border:1px solid rgba(0,212,255,0.3); }
+.msg.user .msg-av { background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3); }
+.msg-body { max-width:82%; }
+.msg-bubble { padding:8px 11px; border-radius:5px; font-size:0.72rem; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+.msg.jarvis .msg-bubble { background:rgba(0,100,200,0.12);border:1px solid rgba(0,212,255,0.18);border-bottom-left-radius:0; color:var(--text); }
+.msg.user .msg-bubble { background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.2);border-bottom-right-radius:0;color:#ffe97a;text-align:right; }
+.msg-time { font-size:0.48rem; color:var(--text3); margin-top:3px; letter-spacing:1px; }
+.msg.user .msg-time { text-align:right; }
+.typing-dots { display:flex;gap:4px;padding:4px 0; }
+.typing-dots span { width:5px;height:5px;border-radius:50%;background:var(--blue);animation:typingBounce 1.2s infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3){animation-delay:.4s;}
+
+/* ════ DASHBOARD SCREEN ════ */
+.orb-wrap { display:flex;justify-content:center;align-items:center;padding:10px 0;position:relative; }
+.orb-ring { position:absolute;border-radius:50%;border:1px solid rgba(0,212,255,0.12);animation:spin linear infinite; }
+.orb-ring:nth-child(1){width:140px;height:140px;animation-duration:20s;border-color:rgba(0,212,255,0.18);}
+.orb-ring:nth-child(2){width:110px;height:110px;animation-duration:14s;animation-direction:reverse;border-color:rgba(0,119,255,0.25);}
+.orb-ring:nth-child(3){width:80px;height:80px;animation-duration:9s;border-color:rgba(0,212,255,0.18);}
+.orb-ring::before { content:'';position:absolute;width:5px;height:5px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue);top:-2.5px;left:50%;transform:translateX(-50%); }
+.orb-core { width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#0af,#005080 60%,#001a2e);box-shadow:0 0 25px rgba(0,180,255,0.5),inset 0 0 15px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;z-index:2;font-size:1.5rem; }
+.orb-core:hover { transform:scale(1.08);box-shadow:0 0 45px rgba(0,212,255,0.8); }
+.orb-core.listening { animation:orbPulse 1s ease-in-out infinite; }
+
+.quick-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:6px; }
+.qbtn { background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.2s;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.5rem;letter-spacing:1px;text-transform:uppercase; }
+.qbtn .qi { font-size:1.2rem; }
+.qbtn:hover { background:rgba(0,212,255,0.1);border-color:var(--blue);box-shadow:var(--glow);transform:translateY(-2px); }
+
+/* ════ NOTES ════ */
+.note-item { background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:all 0.2s;animation:fadeIn 0.3s ease; }
+.note-item:hover { border-color:var(--blue); }
+.note-item .note-title { font-size:0.72rem;color:var(--blue);margin-bottom:4px; }
+.note-item .note-prev { font-size:0.62rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.note-item .note-meta { font-size:0.5rem;color:var(--text3);margin-top:6px;display:flex;justify-content:space-between; }
+
+/* ════ REMINDERS ════ */
+.reminder-item { background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;display:flex;align-items:center;gap:10px;animation:fadeIn 0.3s ease; }
+.reminder-item.done { opacity:0.4; }
+.reminder-cb { width:18px;height:18px;border-radius:3px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.7rem;transition:all 0.2s;flex-shrink:0; }
+.reminder-cb.checked { background:rgba(0,255,136,0.15);border-color:var(--green);color:var(--green); }
+.reminder-text { flex:1; }
+.reminder-title { font-size:0.7rem;color:var(--text); }
+.reminder-time { font-size:0.52rem;color:var(--amber);margin-top:2px; }
+
+/* ════ MAIL ════ */
+.mail-item { background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;cursor:pointer;transition:all 0.2s;animation:fadeIn 0.3s ease; }
+.mail-item:hover { border-color:var(--blue); }
+.mail-item.unread { border-left:3px solid var(--blue); }
+.mail-from { font-size:0.65rem;color:var(--blue);margin-bottom:3px;display:flex;justify-content:space-between; }
+.mail-subject { font-size:0.68rem;color:var(--text);margin-bottom:3px; }
+.mail-prev { font-size:0.58rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+
+/* ════ CONTENT CREATION ════ */
+.cc-tabs { display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none; }
+.cc-tab { padding:5px 12px;border-radius:20px;border:1px solid var(--border);font-size:0.55rem;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all 0.2s;color:var(--text2); }
+.cc-tab.active { background:rgba(0,212,255,0.15);border-color:var(--blue);color:var(--blue); }
+
+/* ════ SYSTEM SCREEN ════ */
+.sys-row { display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,212,255,0.06); }
+.sys-row:last-child { border-bottom:none; }
+.sys-key { font-size:0.6rem;color:var(--text2); }
+.sys-val { font-size:0.62rem;color:var(--blue);font-family:'Orbitron',sans-serif; }
+
+.perm-item { display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,212,255,0.06); }
+.perm-name { font-size:0.65rem;color:var(--text);display:flex;align-items:center;gap:8px; }
+.toggle { width:34px;height:18px;border-radius:9px;background:rgba(0,212,255,0.1);border:1px solid var(--border);cursor:pointer;position:relative;transition:all 0.3s;flex-shrink:0; }
+.toggle.on { background:rgba(0,212,255,0.25);border-color:var(--blue);box-shadow:0 0 8px rgba(0,212,255,0.3); }
+.toggle::after { content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:rgba(0,212,255,0.5);transition:all 0.3s; }
+.toggle.on::after { left:18px;background:var(--blue); }
+
+/* ════ MODAL ════ */
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:none;align-items:center;justify-content:center;padding:16px; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:16px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto;animation:modalIn 0.25s ease; }
+.modal-title { font-family:'Orbitron',sans-serif;font-size:0.75rem;color:var(--blue);letter-spacing:3px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center; }
+.modal-close { cursor:pointer;color:var(--text3);font-size:1rem;transition:color 0.2s; }
+.modal-close:hover { color:var(--red); }
+
+/* ════ AI OUTPUT BOX ════ */
+.ai-output { background:rgba(0,100,200,0.08);border:1px solid rgba(0,212,255,0.15);border-radius:6px;padding:12px;font-size:0.68rem;line-height:1.7;color:var(--text);white-space:pre-wrap;min-height:60px;position:relative; }
+.ai-output.loading::after { content:'▋';animation:blink 0.8s infinite; }
+.copy-btn { position:absolute;top:8px;right:8px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:0.5rem;color:var(--text3);cursor:pointer;transition:all 0.2s; }
+.copy-btn:hover { color:var(--blue);border-color:var(--blue); }
+
+/* ════ KEYFRAMES ════ */
+@keyframes scanAnim { from{top:-2px} to{top:100vh} }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+@keyframes orbPulse { 0%,100%{box-shadow:0 0 25px rgba(0,180,255,0.5)}50%{box-shadow:0 0 60px rgba(0,212,255,0.9),0 0 100px rgba(0,212,255,0.3)} }
+@keyframes typingBounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)} }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0}to{opacity:1} }
+@keyframes modalIn { from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="scan-line"></div>
+<div class="corner tl"></div><div class="corner tr"></div>
+<div class="corner bl"></div><div class="corner br"></div>
+
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="hdr-left">
+      <div class="hdr-logo">J.A.R.V.I.S</div>
+      <div class="hdr-sub">PERSONAL AI · BETA v1.0</div>
+    </div>
+    <div class="hdr-right">
+      <span style="font-size:0.5rem;color:var(--text3);letter-spacing:2px" id="hdr-date"></span>
+      <div id="hdr-time">--:--</div>
+      <div class="live-dot"></div>
+    </div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div id="navTabs">
+    <div class="tab active" onclick="switchTab('dashboard')" data-tab="dashboard"><span class="tab-icon">⚡</span>Hub</div>
+    <div class="tab" onclick="switchTab('chat')" data-tab="chat"><span class="tab-icon">🤖</span>AI Chat</div>
+    <div class="tab" onclick="switchTab('content')" data-tab="content"><span class="tab-icon">✍️</span>Create</div>
+    <div class="tab" onclick="switchTab('notes')" data-tab="notes"><span class="tab-icon">📝</span>Notes</div>
+    <div class="tab" onclick="switchTab('reminders')" data-tab="reminders"><span class="tab-icon">⏰</span>Remind</div>
+    <div class="tab" onclick="switchTab('mail')" data-tab="mail"><span class="tab-icon">📧</span>Mail</div>
+    <div class="tab" onclick="switchTab('system')" data-tab="system"><span class="tab-icon">⚙️</span>System</div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div id="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="orb-wrap">
+        <div class="orb-ring"></div><div class="orb-ring"></div><div class="orb-ring"></div>
+        <div class="orb-core" id="orbCore" onclick="toggleVoice()">⚡</div>
+      </div>
+      <div style="text-align:center;font-size:0.55rem;color:var(--text3);letter-spacing:3px;margin-top:-6px" id="dashStatus">TAP ORB OR SPEAK TO JARVIS</div>
+
+      <!-- Stats -->
+      <div class="grid4">
+        <div class="stat-tile"><span class="st-icon">🔋</span><span class="st-val" id="d-batt">--</span><span class="st-label">Battery</span><div class="prog-bar"><div class="prog-fill" id="d-batt-bar" style="width:0%"></div></div></div>
+        <div class="stat-tile"><span class="st-icon">📶</span><span class="st-val" id="d-net">--</span><span class="st-label">Network</span><div class="prog-bar"><div class="prog-fill" style="width:80%"></div></div></div>
+        <div class="stat-tile"><span class="st-icon">🧠</span><span class="st-val" style="color:var(--green)">ON</span><span class="st-label">AI Core</span><div class="prog-bar"><div class="prog-fill green" style="width:95%"></div></div></div>
+        <div class="stat-tile"><span class="st-icon">🌡️</span><span class="st-val" id="d-temp">--</span><span class="st-label">Temp</span><div class="prog-bar"><div class="prog-fill amber" style="width:60%"></div></div></div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-title">⚡ QUICK COMMANDS</div>
+        <div class="quick-grid">
+          <div class="qbtn" onclick="quickCmd('Draft a professional email for me')"><span class="qi">📧</span>Email</div>
+          <div class="qbtn" onclick="quickCmd('Write a social media post for Instagram')"><span class="qi">📱</span>Post</div>
+          <div class="qbtn" onclick="quickCmd('Set a reminder')"><span class="qi">⏰</span>Remind</div>
+          <div class="qbtn" onclick="quickCmd('What is the weather like today in Hyderabad?')"><span class="qi">🌤️</span>Weather</div>
+          <div class="qbtn" onclick="quickCmd('Summarize my tasks and help me plan today')"><span class="qi">📋</span>Plan Day</div>
+          <div class="qbtn" onclick="quickCmd('Write a blog post outline')"><span class="qi">✍️</span>Blog</div>
+          <div class="qbtn" onclick="quickCmd('Give me a motivational message')"><span class="qi">💪</span>Motivate</div>
+          <div class="qbtn" onclick="quickCmd('Tell me a quick news summary')"><span class="qi">📰</span>News</div>
+        </div>
+      </div>
+
+      <!-- AI Summary -->
+      <div class="card">
+        <div class="card-title">🤖 JARVIS BRIEFING</div>
+        <div class="ai-output" id="dashBriefing">Initializing daily briefing...</div>
+      </div>
+    </div>
+
+    <!-- ══ CHAT ══ -->
+    <div class="screen" id="screen-chat">
+      <div id="chatMessages">
+        <div class="msg jarvis">
+          <div class="msg-av">🤖</div>
+          <div class="msg-body">
+            <div class="msg-bubble">Good day, sir. All systems are fully operational. I'm your personal AI — I can help you write content, manage emails, set reminders, answer questions, plan your day, and much more. What shall we begin with?</div>
+            <div class="msg-time" id="bootTime">BOOT · --:--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CONTENT CREATION ══ -->
+    <div class="screen" id="screen-content">
+      <div class="card">
+        <div class="card-title">✍️ CONTENT STUDIO</div>
+        <div class="cc-tabs" id="ccTabs">
+          <div class="cc-tab active" onclick="setCCTab(this,'social')">📱 Social</div>
+          <div class="cc-tab" onclick="setCCTab(this,'email')">📧 Email</div>
+          <div class="cc-tab" onclick="setCCTab(this,'blog')">✍️ Blog</div>
+          <div class="cc-tab" onclick="setCCTab(this,'caption')">🖼️ Caption</div>
+          <div class="cc-tab" onclick="setCCTab(this,'script')">🎬 Script</div>
+          <div class="cc-tab" onclick="setCCTab(this,'ad')">📣 Ad Copy</div>
+        </div>
+
+        <div id="cc-social">
+          <input class="input-field" id="cc-topic" placeholder="Topic or product (e.g. fitness tips, new launch...)">
+          <select class="input-field" id="cc-platform" style="cursor:pointer">
+            <option value="Instagram">Instagram</option>
+            <option value="Twitter/X">Twitter/X</option>
+            <option value="LinkedIn">LinkedIn</option>
+            <option value="Facebook">Facebook</option>
+            <option value="YouTube">YouTube</option>
+            <option value="WhatsApp Status">WhatsApp Status</option>
+          </select>
+          <select class="input-field" id="cc-tone" style="cursor:pointer">
+            <option value="engaging and fun">Engaging & Fun</option>
+            <option value="professional">Professional</option>
+            <option value="motivational">Motivational</option>
+            <option value="humorous">Humorous</option>
+            <option value="informative">Informative</option>
+          </select>
+          <button class="btn primary" onclick="generateContent()" style="width:100%">⚡ GENERATE WITH AI</button>
+        </div>
+
+        <div id="cc-email" style="display:none">
+          <input class="input-field" id="email-to" placeholder="To: (name or role)">
+          <input class="input-field" id="email-subject" placeholder="Subject / Purpose">
+          <textarea class="input-field" id="email-context" placeholder="Context / key points to include..."></textarea>
+          <select class="input-field" id="email-tone" style="cursor:pointer">
+            <option value="professional and formal">Professional & Formal</option>
+            <option value="friendly">Friendly</option>
+            <option value="follow-up">Follow-Up</option>
+            <option value="apologetic">Apologetic</option>
+            <option value="persuasive">Persuasive</option>
+          </select>
+          <button class="btn primary" onclick="generateEmailContent()" style="width:100%">⚡ DRAFT EMAIL</button>
+        </div>
+
+        <div id="cc-blog" style="display:none">
+          <input class="input-field" id="blog-title" placeholder="Blog topic or title">
+          <input class="input-field" id="blog-audience" placeholder="Target audience">
+          <select class="input-field" id="blog-type" style="cursor:pointer">
+            <option value="full blog post with intro, 3 sections, and conclusion">Full Blog Post</option>
+            <option value="outline with headings">Outline Only</option>
+            <option value="introduction paragraph">Intro Paragraph</option>
+            <option value="listicle (numbered tips)">Listicle / Tips</option>
+          </select>
+          <button class="btn primary" onclick="generateBlogContent()" style="width:100%">⚡ WRITE BLOG</button>
+        </div>
+
+        <div id="cc-caption" style="display:none">
+          <textarea class="input-field" id="cap-desc" placeholder="Describe the image or scene..."></textarea>
+          <select class="input-field" id="cap-vibe" style="cursor:pointer">
+            <option value="aesthetic and poetic">Aesthetic & Poetic</option>
+            <option value="funny and witty">Funny & Witty</option>
+            <option value="inspirational">Inspirational</option>
+            <option value="informative">Informative</option>
+          </select>
+          <label style="font-size:0.58rem;color:var(--text2);margin-bottom:4px;display:block">Include hashtags?</label>
+          <select class="input-field" id="cap-hash" style="cursor:pointer">
+            <option value="with 10 relevant hashtags">Yes — 10 hashtags</option>
+            <option value="with 5 hashtags">Yes — 5 hashtags</option>
+            <option value="no hashtags">No hashtags</option>
+          </select>
+          <button class="btn primary" onclick="generateCaptionContent()" style="width:100%">⚡ CREATE CAPTION</button>
+        </div>
+
+        <div id="cc-script" style="display:none">
+          <input class="input-field" id="script-topic" placeholder="Video topic">
+          <input class="input-field" id="script-duration" placeholder="Duration (e.g. 60 sec, 5 min)">
+          <select class="input-field" id="script-type" style="cursor:pointer">
+            <option value="YouTube video">YouTube Video</option>
+            <option value="Instagram Reel">Instagram Reel</option>
+            <option value="Podcast intro">Podcast Intro</option>
+            <option value="Product demo">Product Demo</option>
+          </select>
+          <button class="btn primary" onclick="generateScriptContent()" style="width:100%">⚡ WRITE SCRIPT</button>
+        </div>
+
+        <div id="cc-ad" style="display:none">
+          <input class="input-field" id="ad-product" placeholder="Product or service name">
+          <textarea class="input-field" id="ad-features" placeholder="Key features or benefits..."></textarea>
+          <select class="input-field" id="ad-platform" style="cursor:pointer">
+            <option value="Google Ads">Google Ads</option>
+            <option value="Facebook/Instagram Ads">Facebook / Instagram</option>
+            <option value="WhatsApp">WhatsApp</option>
+          </select>
+          <button class="btn primary" onclick="generateAdContent()" style="width:100%">⚡ WRITE AD COPY</button>
+        </div>
+      </div>
+
+      <!-- AI Output -->
+      <div class="card" id="cc-output-card" style="display:none">
+        <div class="card-title">🤖 AI OUTPUT <button class="btn" style="margin-left:auto;font-size:0.5rem;padding:3px 8px" onclick="copyOutput()">📋 COPY</button></div>
+        <div class="ai-output" id="cc-output"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" onclick="regenerateContent()">🔄 Regenerate</button>
+          <button class="btn success" onclick="saveToNotes()">💾 Save to Notes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ NOTES ══ -->
+    <div class="screen" id="screen-notes">
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <button class="btn primary" onclick="openNewNote()" style="flex:1">+ NEW NOTE</button>
+        <button class="btn" onclick="openAINote()">🤖 AI Note</button>
+      </div>
+      <div id="notesList"></div>
+    </div>
+
+    <!-- ══ REMINDERS ══ -->
+    <div class="screen" id="screen-reminders">
+      <button class="btn primary" onclick="openNewReminder()" style="width:100%">+ ADD REMINDER</button>
+      <div id="remindersList"></div>
+    </div>
+
+    <!-- ══ MAIL ══ -->
+    <div class="screen" id="screen-mail">
+      <div class="card" style="background:rgba(255,153,0,0.04);border-color:rgba(255,153,0,0.25)">
+        <div class="card-title" style="color:var(--amber)">⚠️ MAIL INTEGRATION NOTE</div>
+        <div style="font-size:0.62rem;color:var(--text2);line-height:1.6">This is JARVIS's built-in mail composer. To connect real Gmail/Outlook, you'll need to add OAuth credentials in Settings. For now, use JARVIS AI to draft, reply, and manage emails.</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn primary" onclick="openComposeMail()" style="flex:1">✍️ COMPOSE</button>
+        <button class="btn" onclick="openAIMailReply()">🤖 AI Reply</button>
+      </div>
+      <div id="mailList"></div>
+    </div>
+
+    <!-- ══ SYSTEM ══ -->
+    <div class="screen" id="screen-system">
+      <div class="card">
+        <div class="card-title">📊 DEVICE STATUS</div>
+        <div class="sys-row"><span class="sys-key">Battery Level</span><span class="sys-val" id="sys-batt">--</span></div>
+        <div class="sys-row"><span class="sys-key">Charging</span><span class="sys-val" id="sys-charging">--</span></div>
+        <div class="sys-row"><span class="sys-key">Network</span><span class="sys-val" id="sys-net">--</span></div>
+        <div class="sys-row"><span class="sys-key">Connection Type</span><span class="sys-val" id="sys-conn">--</span></div>
+        <div class="sys-row"><span class="sys-key">Platform</span><span class="sys-val" id="sys-platform">--</span></div>
+        <div class="sys-row"><span class="sys-key">Screen</span><span class="sys-val" id="sys-screen">--</span></div>
+        <div class="sys-row"><span class="sys-key">Language</span><span class="sys-val" id="sys-lang">--</span></div>
+        <div class="sys-row"><span class="sys-key">Timezone</span><span class="sys-val" id="sys-tz">--</span></div>
+        <div class="sys-row"><span class="sys-key">Memory (JS Heap)</span><span class="sys-val" id="sys-mem">--</span></div>
+        <div class="sys-row"><span class="sys-key">AI Model</span><span class="sys-val" style="color:var(--green)">CLAUDE SONNET</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔐 PERMISSIONS</div>
+        <div class="perm-item"><span class="perm-name">🎙️ Microphone (Voice)</span><div class="toggle on" id="perm-mic" onclick="togglePerm(this,'mic')"></div></div>
+        <div class="perm-item"><span class="perm-name">📍 Location</span><div class="toggle" id="perm-loc" onclick="requestLocation(this)"></div></div>
+        <div class="perm-item"><span class="perm-name">🔔 Notifications</span><div class="toggle" id="perm-notif" onclick="requestNotifications(this)"></div></div>
+        <div class="perm-item"><span class="perm-name">📷 Camera</span><div class="toggle" id="perm-cam" onclick="requestCamera(this)"></div></div>
+        <div class="perm-item"><span class="perm-name">💾 Storage (Notes)</span><div class="toggle on"></div></div>
+        <div class="perm-item"><span class="perm-name">🔋 Battery Monitor</span><div class="toggle on"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 AI SETTINGS</div>
+        <div class="sys-row"><span class="sys-key">Personality</span><span style="font-size:0.6rem;color:var(--blue)">JARVIS (British AI)</span></div>
+        <div class="sys-row"><span class="sys-key">Voice Language</span><span style="font-size:0.6rem;color:var(--blue)">English (en-US)</span></div>
+        <div class="sys-row"><span class="sys-key">Response Style</span><span style="font-size:0.6rem;color:var(--blue)">Concise + Helpful</span></div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+          <button class="btn" onclick="exportData()">📤 Export Data</button>
+          <button class="btn success" onclick="installPWA()">📲 Install App</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📍 LOCATION</div>
+        <div class="sys-row"><span class="sys-key">City</span><span class="sys-val" id="sys-city">Hyderabad, IN</span></div>
+        <div class="sys-row"><span class="sys-key">Coordinates</span><span class="sys-val" id="sys-coords">--</span></div>
+        <button class="btn" onclick="getLocation()" style="margin-top:8px">📍 GET LOCATION</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM BAR -->
+  <div id="bottomBar">
+    <div class="input-row">
+      <button class="icon-btn" onclick="toggleVoice()" id="micBtn" title="Voice">🎙️</button>
+      <input id="mainInput" placeholder="Ask JARVIS anything..." onkeydown="handleInputKey(event)">
+      <button class="icon-btn" onclick="sendToJarvis()" title="Send">➤</button>
+    </div>
+    <div id="statusLine">JARVIS ONLINE · ALL SYSTEMS NOMINAL</div>
+  </div>
+</div>
+
+<!-- ════ MODALS ════ -->
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <div class="modal-title">📝 NOTE <span class="modal-close" onclick="closeModal('noteModal')">✕</span></div>
+    <input class="input-field" id="note-title-inp" placeholder="Title">
+    <textarea class="input-field" id="note-body-inp" placeholder="Write your note..." style="min-height:120px"></textarea>
+    <div style="display:flex;gap:6px">
+      <button class="btn primary" onclick="saveNote()" style="flex:1">💾 SAVE</button>
+      <button class="btn" onclick="closeModal('noteModal')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Note Modal -->
+<div class="modal-overlay" id="aiNoteModal">
+  <div class="modal">
+    <div class="modal-title">🤖 AI NOTE <span class="modal-close" onclick="closeModal('aiNoteModal')">✕</span></div>
+    <input class="input-field" id="ai-note-prompt" placeholder="e.g. Summarize meeting about project X...">
+    <button class="btn primary" onclick="generateAINote()" style="width:100%">⚡ GENERATE</button>
+    <div class="ai-output" id="ai-note-output" style="margin-top:8px;min-height:40px;display:none"></div>
+    <div id="ai-note-save-row" style="display:none;margin-top:8px">
+      <button class="btn success" onclick="saveAINote()" style="width:100%">💾 SAVE AS NOTE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reminder Modal -->
+<div class="modal-overlay" id="reminderModal">
+  <div class="modal">
+    <div class="modal-title">⏰ REMINDER <span class="modal-close" onclick="closeModal('reminderModal')">✕</span></div>
+    <input class="input-field" id="rem-title-inp" placeholder="What to remind?">
+    <input class="input-field" id="rem-time-inp" type="datetime-local">
+    <select class="input-field" id="rem-priority" style="cursor:pointer">
+      <option value="normal">Normal Priority</option>
+      <option value="high">High Priority</option>
+      <option value="urgent">Urgent</option>
+    </select>
+    <div style="display:flex;gap:6px">
+      <button class="btn primary" onclick="saveReminder()" style="flex:1">💾 SAVE</button>
+      <button class="btn" onclick="closeModal('reminderModal')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- Compose Mail Modal -->
+<div class="modal-overlay" id="mailModal">
+  <div class="modal">
+    <div class="modal-title">📧 COMPOSE <span class="modal-close" onclick="closeModal('mailModal')">✕</span></div>
+    <input class="input-field" id="mail-to-inp" placeholder="To:">
+    <input class="input-field" id="mail-subj-inp" placeholder="Subject:">
+    <textarea class="input-field" id="mail-body-inp" placeholder="Message..." style="min-height:100px"></textarea>
+    <button class="btn primary" onclick="aiDraftMail()" style="width:100%;margin-bottom:6px">🤖 AI DRAFT FOR ME</button>
+    <div class="ai-output" id="mail-ai-out" style="display:none;margin-bottom:8px"></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn success" onclick="sendMail()" style="flex:1">📤 SEND (Save)</button>
+      <button class="btn" onclick="closeModal('mailModal')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Reply Modal -->
+<div class="modal-overlay" id="aiReplyModal">
+  <div class="modal">
+    <div class="modal-title">🤖 AI REPLY <span class="modal-close" onclick="closeModal('aiReplyModal')">✕</span></div>
+    <textarea class="input-field" id="reply-orig" placeholder="Paste the email you received..."></textarea>
+    <input class="input-field" id="reply-intent" placeholder="Your intent (e.g. decline politely, accept, ask for more time)">
+    <button class="btn primary" onclick="generateReply()" style="width:100%">⚡ GENERATE REPLY</button>
+    <div class="ai-output" id="reply-output" style="margin-top:8px;display:none"></div>
+    <button class="btn success" id="reply-copy-btn" style="width:100%;margin-top:8px;display:none" onclick="copyReply()">📋 COPY REPLY</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// JARVIS CORE
+// ════════════════════════════════════════
+const JARVIS_SYSTEM = `You are J.A.R.V.I.S (Just A Rather Very Intelligent System), an advanced AI personal assistant running on the user's mobile device. You are inspired by Iron Man's JARVIS.
+
+Your personality:
+- Calm, precise, efficient, slightly formal British AI style
+- Address the user as "sir" occasionally
+- Be concise but thorough
+- Use technical language naturally
+- Proactive — offer additional help when relevant
+- Supportive and capable across ALL domains
+
+Your capabilities include:
+- Content creation (social media, blogs, emails, scripts, ads, captions)
+- Email drafting and management
+- Reminders and scheduling
+- Research and information
+- Daily planning and task management
+- Creative writing
+- Analysis and problem solving
+- Weather, news, and general knowledge
+- Personal advice and motivation
+- Code help and technical assistance
+
+Always be helpful, accurate, and efficient. When the user asks you to do something related to device features (camera, contacts, etc.), acknowledge you can guide them but browser security limits direct access — always offer what you CAN do.`;
+
+let chatHistory = [];
+let currentCCTab = 'social';
+let lastCCPrompt = '';
+let lastCCOutput = '';
+let deferredInstall = null;
+let recognition = null;
+let isListening = false;
+
+// ════ API CALL ════
+async function callAI(messages, systemPrompt = JARVIS_SYSTEM) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: messages
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.map(b => b.text || '').join('') || '';
+  if (!text) throw new Error('No response');
+  return text;
+}
+
+// ════ CHAT ════
+function getTime() {
+  const n = new Date();
+  return n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addMsg(role, text) {
+  const chat = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role==='user'?'user':'jarvis');
+  div.innerHTML = `
+    <div class="msg-av">${role==='user'?'👤':'🤖'}</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${escHtml(text)}</div>
+      <div class="msg-time">${getTime()}</div>
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  const chat = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg jarvis'; div.id = 'typingIndicator';
+  div.innerHTML = `<div class="msg-av">🤖</div><div class="msg-body"><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+async function sendToJarvis() {
+  const inp = document.getElementById('mainInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+
+  // Switch to chat tab
+  switchTab('chat');
+  addMsg('user', text);
+  chatHistory.push({ role: 'user', content: text });
+  showTyping();
+  setStatus('PROCESSING...');
+
+  try {
+    const reply = await callAI(chatHistory);
+    removeTyping();
+    addMsg('jarvis', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+    setStatus('AWAITING COMMAND');
+    speakText(reply);
+  } catch(e) {
+    removeTyping();
+    addMsg('jarvis', 'I encountered a network anomaly, sir. Please check your connection and try again.');
+    setStatus('STANDBY');
+  }
+}
+
+function handleInputKey(e) {
+  if (e.key === 'Enter') sendToJarvis();
+}
+
+function quickCmd(text) {
+  document.getElementById('mainInput').value = text;
+  sendToJarvis();
+}
+
+// ════ VOICE ════
+function toggleVoice() {
+  if (isListening) {
+    stopListening();
+  } else {
+    startListening();
+  }
+}
+
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus('VOICE NOT SUPPORTED ON THIS BROWSER');
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('micBtn').classList.add('active');
+    document.getElementById('orbCore').classList.add('listening');
+    setStatus('🎙 LISTENING... SPEAK NOW');
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('mainInput').value = transcript;
+    if (e.results[e.results.length-1].isFinal) {
+      sendToJarvis();
+    }
+  };
+
+  recognition.onend = () => stopListening();
+  recognition.onerror = () => stopListening();
+  recognition.start();
+}
+
+function stopListening() {
+  isListening = false;
+  if (recognition) recognition.stop();
+  document.getElementById('micBtn').classList.remove('active');
+  document.getElementById('orbCore').classList.remove('listening');
+  setStatus('AWAITING COMMAND');
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  const clean = text.replace(/[*#_`]/g,'').substring(0,300);
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = 'en-GB';
+  utt.rate = 1.0;
+  utt.pitch = 0.9;
+  const voices = speechSynthesis.getVoices();
+  const british = voices.find(v=>v.lang==='en-GB') || voices.find(v=>v.lang.startsWith('en'));
+  if (british) utt.voice = british;
+  speechSynthesis.speak(utt);
+}
+
+// ════ CONTENT CREATION ════
+function setCCTab(el, tab) {
+  currentCCTab = tab;
+  document.querySelectorAll('.cc-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['social','email','blog','caption','script','ad'].forEach(t=>{
+    const el2 = document.getElementById('cc-'+t);
+    if(el2) el2.style.display = t===tab?'block':'none';
+  });
+}
+
+async function generateContent() {
+  const topic = document.getElementById('cc-topic').value || 'general';
+  const platform = document.getElementById('cc-platform').value;
+  const tone = document.getElementById('cc-tone').value;
+  lastCCPrompt = `Write a ${tone} ${platform} post about: ${topic}. Include emojis where appropriate. Make it engaging and ready to post.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function generateEmailContent() {
+  const to = document.getElementById('email-to').value || 'recipient';
+  const subject = document.getElementById('email-subject').value || 'the subject';
+  const context = document.getElementById('email-context').value || '';
+  const tone = document.getElementById('email-tone').value;
+  lastCCPrompt = `Write a ${tone} email to ${to} about: ${subject}. Context/key points: ${context}. Include subject line, greeting, body, and sign-off.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function generateBlogContent() {
+  const title = document.getElementById('blog-title').value || 'the topic';
+  const audience = document.getElementById('blog-audience').value || 'general audience';
+  const type = document.getElementById('blog-type').value;
+  lastCCPrompt = `Write a ${type} for the blog topic: "${title}". Target audience: ${audience}. Make it compelling, well-structured, and SEO-friendly.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function generateCaptionContent() {
+  const desc = document.getElementById('cap-desc').value || 'a photo';
+  const vibe = document.getElementById('cap-vibe').value;
+  const hash = document.getElementById('cap-hash').value;
+  lastCCPrompt = `Write a ${vibe} Instagram caption for this image: ${desc}. Include the caption ${hash}.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function generateScriptContent() {
+  const topic = document.getElementById('script-topic').value || 'the topic';
+  const dur = document.getElementById('script-duration').value || '60 seconds';
+  const type = document.getElementById('script-type').value;
+  lastCCPrompt = `Write a ${dur} ${type} script about: ${topic}. Include [HOOK], main content, and [CTA]. Mark scene directions in brackets.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function generateAdContent() {
+  const product = document.getElementById('ad-product').value || 'the product';
+  const features = document.getElementById('ad-features').value || '';
+  const platform = document.getElementById('ad-platform').value;
+  lastCCPrompt = `Write compelling ${platform} ad copy for: ${product}. Key features: ${features}. Include headline, body copy, and call-to-action. Make it persuasive and conversion-focused.`;
+  await runContentGen(lastCCPrompt);
+}
+
+async function runContentGen(prompt) {
+  const card = document.getElementById('cc-output-card');
+  const out = document.getElementById('cc-output');
+  card.style.display = 'block';
+  out.textContent = '';
+  out.classList.add('loading');
+  setStatus('GENERATING...');
+  try {
+    const result = await callAI([{role:'user',content:prompt}]);
+    out.classList.remove('loading');
+    out.textContent = result;
+    lastCCOutput = result;
+    setStatus('CONTENT READY');
+  } catch(e) {
+    out.classList.remove('loading');
+    out.textContent = 'Generation failed. Please check connection and try again.';
+    setStatus('ERROR');
+  }
+}
+
+async function regenerateContent() {
+  if (lastCCPrompt) await runContentGen(lastCCPrompt);
+}
+
+function copyOutput() {
+  const text = document.getElementById('cc-output').textContent;
+  copyText(text);
+}
+
+function saveToNotes() {
+  const text = lastCCOutput;
+  if (!text) return;
+  const title = 'AI Content · ' + new Date().toLocaleDateString();
+  saveNoteData(title, text);
+  showToast('Saved to Notes!');
+}
+
+// ════ NOTES ════
+let notes = JSON.parse(localStorage.getItem('jarvis_notes')||'[]');
+let editingNoteId = null;
+
+function renderNotes() {
+  const list = document.getElementById('notesList');
+  if (!notes.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:0.62rem;padding:20px">No notes yet. Tap + NEW NOTE to create one.</div>';
+    return;
+  }
+  list.innerHTML = notes.map(n=>`
+    <div class="note-item" onclick="openEditNote('${n.id}')">
+      <div class="note-title">${escHtml(n.title)}</div>
+      <div class="note-prev">${escHtml(n.body.substring(0,80))}${n.body.length>80?'...':''}</div>
+      <div class="note-meta">
+        <span>${new Date(n.created).toLocaleDateString()}</span>
+        <span onclick="deleteNote(event,'${n.id}')" style="color:var(--red);cursor:pointer">🗑 DELETE</span>
+      </div>
+    </div>`).join('');
+}
+
+function saveNoteData(title, body) {
+  const note = { id: Date.now().toString(), title, body, created: Date.now() };
+  notes.unshift(note);
+  localStorage.setItem('jarvis_notes', JSON.stringify(notes));
+  renderNotes();
+}
+
+function openNewNote() {
+  editingNoteId = null;
+  document.getElementById('note-title-inp').value = '';
+  document.getElementById('note-body-inp').value = '';
+  openModal('noteModal');
+}
+
+function openEditNote(id) {
+  const note = notes.find(n=>n.id===id);
+  if (!note) return;
+  editingNoteId = id;
+  document.getElementById('note-title-inp').value = note.title;
+  document.getElementById('note-body-inp').value = note.body;
+  openModal('noteModal');
+}
+
+function saveNote() {
+  const title = document.getElementById('note-title-inp').value.trim() || 'Untitled';
+  const body = document.getElementById('note-body-inp').value.trim();
+  if (editingNoteId) {
+    const note = notes.find(n=>n.id===editingNoteId);
+    if (note) { note.title=title; note.body=body; note.updated=Date.now(); }
+  } else {
+    notes.unshift({ id: Date.now().toString(), title, body, created: Date.now() });
+  }
+  localStorage.setItem('jarvis_notes', JSON.stringify(notes));
+  renderNotes();
+  closeModal('noteModal');
+  showToast('Note saved!');
+}
+
+function deleteNote(e, id) {
+  e.stopPropagation();
+  notes = notes.filter(n=>n.id!==id);
+  localStorage.setItem('jarvis_notes', JSON.stringify(notes));
+  renderNotes();
+}
+
+function openAINote() { openModal('aiNoteModal'); }
+
+async function generateAINote() {
+  const prompt = document.getElementById('ai-note-prompt').value.trim();
+  if (!prompt) return;
+  const out = document.getElementById('ai-note-output');
+  out.style.display='block';
+  out.textContent = '';
+  out.classList.add('loading');
+  try {
+    const result = await callAI([{role:'user',content:`Please write/format the following as a clean note: ${prompt}`}]);
+    out.classList.remove('loading');
+    out.textContent = result;
+    document.getElementById('ai-note-save-row').style.display='block';
+  } catch(e) {
+    out.classList.remove('loading');
+    out.textContent = 'Error generating note.';
+  }
+}
+
+function saveAINote() {
+  const text = document.getElementById('ai-note-output').textContent;
+  const title = 'AI Note · ' + new Date().toLocaleDateString();
+  saveNoteData(title, text);
+  closeModal('aiNoteModal');
+  showToast('AI Note saved!');
+}
+
+// ════ REMINDERS ════
+let reminders = JSON.parse(localStorage.getItem('jarvis_reminders')||'[]');
+
+function renderReminders() {
+  const list = document.getElementById('remindersList');
+  if (!reminders.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:0.62rem;padding:20px">No reminders. Tap + ADD REMINDER.</div>';
+    return;
+  }
+  const sorted = [...reminders].sort((a,b)=>new Date(a.time)-new Date(b.time));
+  list.innerHTML = sorted.map(r=>{
+    const t = new Date(r.time);
+    const isPast = t < new Date();
+    return `<div class="reminder-item ${r.done?'done':''}">
+      <div class="reminder-cb ${r.done?'checked':''}" onclick="toggleReminder('${r.id}')">${r.done?'✓':''}</div>
+      <div class="reminder-text">
+        <div class="reminder-title">${escHtml(r.title)}</div>
+        <div class="reminder-time">${t.toLocaleString()} ${isPast&&!r.done?'⚠️ OVERDUE':''}</div>
+      </div>
+      <span class="tag ${r.priority==='urgent'?'red':r.priority==='high'?'amber':'blue'}">${r.priority}</span>
+      <span onclick="deleteReminder('${r.id}')" style="color:var(--red);cursor:pointer;font-size:0.8rem">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function openNewReminder() {
+  document.getElementById('rem-title-inp').value = '';
+  document.getElementById('rem-time-inp').value = '';
+  openModal('reminderModal');
+}
+
+function saveReminder() {
+  const title = document.getElementById('rem-title-inp').value.trim();
+  const time = document.getElementById('rem-time-inp').value;
+  const priority = document.getElementById('rem-priority').value;
+  if (!title) return;
+  reminders.push({ id: Date.now().toString(), title, time, priority, done: false });
+  localStorage.setItem('jarvis_reminders', JSON.stringify(reminders));
+  renderReminders();
+  closeModal('reminderModal');
+  if (time) scheduleNotification(title, time);
+  showToast('Reminder set!');
+}
+
+function toggleReminder(id) {
+  const r = reminders.find(r=>r.id===id);
+  if (r) r.done = !r.done;
+  localStorage.setItem('jarvis_reminders', JSON.stringify(reminders));
+  renderReminders();
+}
+
+function deleteReminder(id) {
+  reminders = reminders.filter(r=>r.id!==id);
+  localStorage.setItem('jarvis_reminders', JSON.stringify(reminders));
+  renderReminders();
+}
+
+function scheduleNotification(title, timeStr) {
+  const delay = new Date(timeStr).getTime() - Date.now();
+  if (delay > 0 && 'Notification' in window && Notification.permission === 'granted') {
+    setTimeout(() => new Notification('⏰ JARVIS Reminder', { body: title, icon: '/icon-192.png' }), delay);
+  }
+}
+
+// ════ MAIL ════
+let mails = JSON.parse(localStorage.getItem('jarvis_mails')||'[]');
+if (!mails.length) {
+  mails = [
+    { id:'1', from:'Team Lead', subject:'Project Update Required', preview:'Please send the weekly status update by EOD...', time: Date.now()-86400000, unread:true },
+    { id:'2', from:'Client - Priya', subject:'Re: Proposal Review', preview:'Thank you for sending the proposal. I had a few questions...', time: Date.now()-172800000, unread:true },
+    { id:'3', from:'Newsletter', subject:'AI Tools Weekly Digest', preview:'This week in AI: New models, tools and trends...', time: Date.now()-259200000, unread:false },
+  ];
+  localStorage.setItem('jarvis_mails', JSON.stringify(mails));
+}
+
+function renderMails() {
+  const list = document.getElementById('mailList');
+  list.innerHTML = mails.map(m=>`
+    <div class="mail-item ${m.unread?'unread':''}" onclick="readMail('${m.id}')">
+      <div class="mail-from"><span>${escHtml(m.from)}</span><span style="font-size:0.52rem;color:var(--text3)">${timeAgo(m.time)}</span></div>
+      <div class="mail-subject">${m.unread?'🔵 ':''}<strong>${escHtml(m.subject)}</strong></div>
+      <div class="mail-prev">${escHtml(m.preview)}</div>
+    </div>`).join('');
+}
+
+function readMail(id) {
+  const m = mails.find(m=>m.id===id);
+  if (!m) return;
+  m.unread = false;
+  localStorage.setItem('jarvis_mails', JSON.stringify(mails));
+  renderMails();
+  // Show in alert for now
+  alert(`FROM: ${m.from}\nSUBJECT: ${m.subject}\n\n${m.preview}\n\n[Full email body would appear here if connected to real mail service]`);
+}
+
+function openComposeMail() {
+  document.getElementById('mail-to-inp').value = '';
+  document.getElementById('mail-subj-inp').value = '';
+  document.getElementById('mail-body-inp').value = '';
+  document.getElementById('mail-ai-out').style.display = 'none';
+  openModal('mailModal');
+}
+
+async function aiDraftMail() {
+  const to = document.getElementById('mail-to-inp').value || 'recipient';
+  const subj = document.getElementById('mail-subj-inp').value || 'subject';
+  const body = document.getElementById('mail-body-inp').value || 'write a professional email';
+  const out = document.getElementById('mail-ai-out');
+  out.style.display = 'block';
+  out.textContent = '';
+  out.classList.add('loading');
+  try {
+    const result = await callAI([{role:'user',content:`Draft a professional email to ${to} about "${subj}". Additional context: ${body}`}]);
+    out.classList.remove('loading');
+    out.textContent = result;
+    document.getElementById('mail-body-inp').value = result;
+  } catch(e) {
+    out.classList.remove('loading');
+    out.textContent = 'Draft failed.';
+  }
+}
+
+function sendMail() {
+  const to = document.getElementById('mail-to-inp').value;
+  const subj = document.getElementById('mail-subj-inp').value;
+  const body = document.getElementById('mail-body-inp').value;
+  const mail = { id: Date.now().toString(), from: 'You → '+to, subject: subj, preview: body.substring(0,80), time: Date.now(), unread: false, sent: true };
+  mails.unshift(mail);
+  localStorage.setItem('jarvis_mails', JSON.stringify(mails));
+  renderMails();
+  closeModal('mailModal');
+  showToast('Mail saved to outbox! (Connect Gmail to actually send)');
+}
+
+function openAIMailReply() { openModal('aiReplyModal'); }
+
+async function generateReply() {
+  const orig = document.getElementById('reply-orig').value;
+  const intent = document.getElementById('reply-intent').value || 'reply professionally';
+  const out = document.getElementById('reply-output');
+  out.style.display = 'block';
+  out.textContent = '';
+  out.classList.add('loading');
+  try {
+    const result = await callAI([{role:'user',content:`Write an email reply. Original email: "${orig}". My intent: ${intent}. Write a complete, professional reply.`}]);
+    out.classList.remove('loading');
+    out.textContent = result;
+    document.getElementById('reply-copy-btn').style.display = 'block';
+  } catch(e) {
+    out.classList.remove('loading');
+    out.textContent = 'Error generating reply.';
+  }
+}
+
+function copyReply() {
+  copyText(document.getElementById('reply-output').textContent);
+}
+
+// ════ SYSTEM ════
+function loadSystemInfo() {
+  document.getElementById('sys-platform').textContent = navigator.platform || navigator.userAgentData?.platform || 'Unknown';
+  document.getElementById('sys-screen').textContent = screen.width+'×'+screen.height;
+  document.getElementById('sys-lang').textContent = navigator.language;
+  document.getElementById('sys-tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (navigator.deviceMemory) document.getElementById('sys-mem').textContent = navigator.deviceMemory+'GB';
+  else document.getElementById('sys-mem').textContent = 'N/A';
+
+  updateBattery();
+  updateNetworkInfo();
+}
+
+async function updateBattery() {
+  if (navigator.getBattery) {
+    const b = await navigator.getBattery();
+    const pct = Math.round(b.level*100)+'%';
+    document.getElementById('d-batt').textContent = pct;
+    document.getElementById('d-batt-bar').style.width = (b.level*100)+'%';
+    document.getElementById('sys-batt').textContent = pct;
+    document.getElementById('sys-charging').textContent = b.charging ? 'YES ⚡' : 'NO';
+    b.addEventListener('levelchange', ()=>updateBattery());
+  }
+}
+
+function updateNetworkInfo() {
+  const online = navigator.onLine;
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const type = conn ? (conn.effectiveType||conn.type||'WIFI').toUpperCase() : (online?'ONLINE':'OFFLINE');
+  document.getElementById('d-net').textContent = type;
+  document.getElementById('sys-net').textContent = online ? 'CONNECTED' : 'OFFLINE';
+  document.getElementById('sys-conn').textContent = conn ? (conn.effectiveType||conn.type||'--').toUpperCase() : '--';
+}
+
+function getLocation() {
+  if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude,longitude} = pos.coords;
+    document.getElementById('sys-coords').textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    document.getElementById('perm-loc').classList.add('on');
+    showToast('Location obtained!');
+  }, ()=>showToast('Location denied'));
+}
+
+function requestLocation(toggle) {
+  getLocation();
+}
+
+async function requestNotifications(toggle) {
+  if (!('Notification' in window)) { showToast('Notifications not supported'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    toggle.classList.add('on');
+    new Notification('JARVIS Notifications Active', { body: 'Reminders will now alert you, sir.' });
+    showToast('Notifications enabled!');
+  }
+}
+
+async function requestCamera(toggle) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach(t=>t.stop());
+    toggle.classList.add('on');
+    showToast('Camera access granted!');
+  } catch(e) {
+    showToast('Camera access denied');
+  }
+}
+
+function togglePerm(el, type) {
+  el.classList.toggle('on');
+}
+
+// ════ DASHBOARD BRIEFING ════
+async function loadBriefing() {
+  const el = document.getElementById('dashBriefing');
+  el.classList.add('loading');
+  const hour = new Date().getHours();
+  const greeting = hour<12?'morning':hour<17?'afternoon':'evening';
+  const count = reminders.filter(r=>!r.done).length;
+  const noteCount = notes.length;
+  try {
+    const result = await callAI([{role:'user',content:`Give a brief, punchy JARVIS-style good ${greeting} briefing. Mention: ${count} pending reminders, ${noteCount} saved notes. Include one productivity tip for today. Keep it under 60 words. Be direct and helpful.`}]);
+    el.classList.remove('loading');
+    el.textContent = result;
+  } catch(e) {
+    el.classList.remove('loading');
+    el.textContent = `Good ${greeting}, sir. ${count} reminders pending. ${noteCount} notes in storage. All systems operational. Ready for your commands.`;
+  }
+}
+
+// ════ UTILITIES ════
+function setStatus(txt) {
+  document.getElementById('statusLine').textContent = txt;
+  document.getElementById('dashStatus').textContent = txt;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyText(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>showToast('Copied!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied!');
+  }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.4);color:var(--blue);padding:8px 18px;border-radius:20px;font-size:0.65rem;letter-spacing:1px;z-index:999;animation:fadeIn 0.3s ease;';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2500);
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 3600000) return Math.floor(diff/60000)+'m ago';
+  if (diff < 86400000) return Math.floor(diff/3600000)+'h ago';
+  return Math.floor(diff/86400000)+'d ago';
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ════ TABS ════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active', s.id==='screen-'+tab));
+}
+
+// ════ SETTINGS ════
+function clearAllData() {
+  if (confirm('Clear all JARVIS data? This cannot be undone.')) {
+    localStorage.clear();
+    notes=[]; reminders=[]; mails=[];
+    chatHistory=[];
+    renderNotes(); renderReminders(); renderMails();
+    showToast('All data cleared.');
+  }
+}
+
+function exportData() {
+  const data = { notes, reminders, mails, exported: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'jarvis_backup.json';
+  a.click();
+  showToast('Data exported!');
+}
+
+function installPWA() {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+  } else {
+    showToast('To install: tap browser menu → "Add to Home Screen"');
+  }
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  showToast('JARVIS can be installed as an app! Tap System → Install App');
+});
+
+// ════ CLOCK ════
+function updateClock() {
+  const n = new Date();
+  const t = n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('hdr-time').textContent = t;
+  document.getElementById('bootTime').textContent = 'BOOT · '+t;
+  document.getElementById('hdr-date').textContent = n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}).toUpperCase();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// ════ BACKGROUND CANVAS ════
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles=[];
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+
+  function initParticles() {
+    particles = Array.from({length:40},()=>({
+      x: Math.random()*w, y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3,
+      r: Math.random()*1.5+0.5, a: Math.random()
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,w,h);
+    // Grid
+    ctx.strokeStyle = 'rgba(0,180,255,0.04)';
+    ctx.lineWidth = 1;
+    for(let x=0;x<w;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+    for(let y=0;y<h;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    // Particles
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>w) p.vx*=-1;
+      if(p.y<0||p.y>h) p.vy*=-1;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,212,255,${p.a*0.4})`;
+      ctx.fill();
+    });
+    // Connections
+    ctx.strokeStyle = 'rgba(0,212,255,0.06)';
+    ctx.lineWidth = 0.5;
+    particles.forEach((a,i)=>particles.slice(i+1).forEach(b=>{
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<100){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+    }));
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initParticles();
+  draw();
+  window.addEventListener('resize',()=>{resize();initParticles();});
+})();
+
+// ════ INIT ════
+function init() {
+  renderNotes();
+  renderReminders();
+  renderMails();
+  loadSystemInfo();
+  setTimeout(loadBriefing, 1000);
+  // Reminder checker
+  setInterval(()=>{
+    const now = new Date();
+    reminders.filter(r=>!r.done&&r.time).forEach(r=>{
+      const t = new Date(r.time);
+      if (Math.abs(now-t)<60000) {
+        if (Notification.permission==='granted') {
+          new Notification('⏰ JARVIS: '+r.title, {body:'Reminder time, sir!'});
+        }
+        showToast('⏰ '+r.title);
+      }
+    });
+  },30000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
